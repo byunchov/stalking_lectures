@@ -5,11 +5,9 @@ from zipfile import ZipFile
 from os import walk
 import json
 
-ALLOWED_FILE_EXTENTIONS = ('.xls','.xlsx', '.ods', '.odf' ,'.odt', '.csv')
-<<<<<<< HEAD
 
-=======
->>>>>>> 6bb8bddffa9ae3477d29d5dd8e3431c8cdb0b4bf
+ALLOWED_FILE_EXTENTIONS = ('.xls','.xlsx', '.ods', '.odf' ,'.odt', '.csv')
+
 
 class NpEncoder(json.JSONEncoder):
     def default(self, obj):
