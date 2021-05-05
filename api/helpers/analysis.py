@@ -5,7 +5,8 @@ from zipfile import ZipFile
 from os import walk
 import json
 
-ALLOWED_EXTENTIONS = ('.xls','.xlsx', '.ods', '.odf' ,'.odt', '.csv')
+ALLOWED_FILE_EXTENTIONS = ('.xls','.xlsx', '.ods', '.odf' ,'.odt', '.csv')
+
 class NpEncoder(json.JSONEncoder):
     def default(self, obj):
         if isinstance(obj, np.integer):
@@ -19,24 +20,54 @@ class NpEncoder(json.JSONEncoder):
 
 
 class PlatformDataAnalyser():
+    def __init__(self, upload_path):
+        self.err_log = [] # TODO
 
-    def __init__(self, content_dir):
-        self.content_dir = content_dir
-        self.err_log = []
         self.student_results = None
         self.system_logs = None
 
-        status = False
-        try:
-            if content_dir.endswith(".zip"):
-                pass
-            else:
-                status = self.handle_individual_files()
-        except:
-            self.err_log.append("[ERR]: Fatar error occured while initializing file data.")
+        self.results_df = []
+        self.logs_df = []
 
-        if not status:
-            self.err_log.append("[ERR]: Error occured while initializing data. It's possible that the data of the file doesn't match the requirements.")
+        self.init_data_from_file()
+
+
+    def init_data_from_file(self):
+        for content in walk(self.upload_path):
+
+            #Check if there are any files in the current dir
+            if content[2]:
+                # if there are files, loop through all and check if they are of the allowed types
+                for item in content[2]:
+                    data_file = f'{content[0]}/{item}'
+
+                    if item.endswith('.zip'):
+                        self.handle_zip_file(data_file)
+                    elif item.endswith(ALLOWED_FILE_EXTENTIONS):
+                        self.handle_data_file(data_file)
+
+
+    def handle_zip_file(self, path_to_file):
+        with ZipFile(path_to_file) as input_archive:
+            for item in input_archive.namelist():
+                if item.endswith(ALLOWED_FILE_EXTENTIONS):
+                    with input_archive.open(item) as data_file:
+                        self.handle_data_file(data_file)
+
+
+    def handle_data_file(self, path_to_file):
+        df = pd.read_csv(path_to_file) if data_file.name.endswith('.csv') else pd.read_excel(path_to_file)
+
+        if 'ID' and 'Result' in df.columns:
+            self.results_df.append(df)
+            print('Result file found! Appending DF to list.')
+        elif 'Event' and 'Component' in df.columns:
+            df['User ID'] = df['Description'].apply(lambda x: np.int32(re.sub(r"[\D]+",' ', x).strip().split()[0]))
+            self.logs_df.append(df)
+            print('Log file found! Appending DF to list.')
+        else:
+            print('Nothing found!')
+
 
     def handle_individual_files(self):
         # returns True if handling is successful, else False`
@@ -46,7 +77,7 @@ class PlatformDataAnalyser():
         for content in walk(self.content_dir):
             if content[2]:
                 for item in content[2]:
-                    if item.endswith(ALLOWED_EXTENTIONS):
+                    if item.endswith(ALLOWED_FILE_EXTENTIONS):
                         data_file = f'{content[0]}/{item}'
                         df = pd.read_csv if data_file.name.endswith('.csv') else pd.read_excel(data_file)
 
@@ -100,7 +131,7 @@ class PlatformDataAnalyser():
             uploded_files_stats['mean'] = round(np.mean(uploded_files), 3)
 
             #meadian
-            uploded_files_stats['median'] = int(np.median(uploded_files))
+            uploded_files_stats['median'] = np.median(uploded_files)
 
             return json.dumps(uploded_files_stats, cls=NpEncoder)
 
