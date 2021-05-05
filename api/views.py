@@ -17,4 +17,4 @@ def central_tendency(request):
         selector = request.POST.get("upr", default="")
 
     data = analyser.calculate_central_tendency(selector)
-    return HttpResponse(json.dumps(data));
+    return HttpResponse(data);
