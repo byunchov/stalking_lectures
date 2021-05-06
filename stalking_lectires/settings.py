@@ -41,7 +41,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'pandas',
     'numpy',
-    'zipfile'
+    'zipfile',
 
     # Third-Party Apps
     'rest_framework',
