@@ -13,3 +13,5 @@ Requirements before running server:
 ```env\Scripts\activate.bat```
 5. Install requirements with:
 ```pip3 install -r requirements.txt```
+6. Run server:
+```python3 manage.py runserver```

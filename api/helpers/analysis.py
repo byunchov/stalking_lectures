@@ -23,7 +23,6 @@ class NpEncoder(json.JSONEncoder):
 
 class PlatformDataAnalyser():
 
-
     def __init__(self, upload_path):
         self.upload_path = upload_path
 
@@ -40,19 +39,23 @@ class PlatformDataAnalyser():
 
     def init_data_from_file(self):
         for content in walk(self.upload_path):
-            
+
             #Check if there are any files in the current dir
+            print("DBG:")
+            print(content)
             if content[2]:
                 # if there are files, loop through all and check if they are of the allowed types
                 for item in content[2]:
                     data_file = f'{content[0]}/{item}'
 
                     if item.endswith('.zip'):
+                        print("zip found")
                         self.handle_zip_file(data_file)
                     elif item.endswith(ALLOWED_FILE_EXTENTIONS):
                         self.handle_data_file(data_file)
 
         if self.results_df and self.logs_df:
+            print("DBG: loading data")
             self.student_results = pd.concat(self.results_df).sort_values(by='ID', ascending=True)
             self.system_logs = pd.concat(self.logs_df)
 
@@ -69,7 +72,7 @@ class PlatformDataAnalyser():
 
 
     def handle_data_file(self, path_to_file):
-        df = pd.read_csv(path_to_file) if path_to_file.endswith('.csv') else pd.read_excel(path_to_file)
+        df = pd.read_csv(path_to_file) if str(path_to_file).endswith('.csv') else pd.read_excel(path_to_file)
 
         if 'ID' and 'Result' in df.columns:
             self.results_df.append(df)
@@ -115,7 +118,6 @@ class PlatformDataAnalyser():
             return False
 
     def calculate_central_tendency(self, selector):
-
         if not self.student_results.empty and not self.system_logs.empty:
             from statistics import mode
 
@@ -126,7 +128,7 @@ class PlatformDataAnalyser():
             event_name = 'Submission created.'
 
             filtered_data = self.system_logs[self.system_logs['Event context'].str.contains(event_context) & (self.system_logs['Event name'] == event_name)]['Description']
-            
+
             uploded_files = np.empty_like(filtered_data, dtype=int)
 
             for index, item in enumerate(filtered_data):
@@ -149,4 +151,10 @@ class PlatformDataAnalyser():
             return json.dumps(uploded_files_stats, cls=NpEncoder)
 
         else:
-            return json.dumps({ 'error': 'Nohing to be dispaleyd!' })
+            return json.dumps({ 'error': 'Nothing to be displayed!' })
+
+    def calculate_all(self):
+        result = {}
+        result['status'] = 200
+        result['central_tendency'] = (json.loads(self.calculate_central_tendency("all")))
+        return json.dumps(result, cls=NpEncoder)
