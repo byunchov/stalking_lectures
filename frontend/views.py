@@ -41,8 +41,9 @@ def upload(request, user_id):
     context = {}
     if request.method == 'POST':
         uploaded_file = request.FILES['analysis_files']
-        fs = FileSystemStorage(location=os.path.join(settings.MEDIA_ROOT, str(user_id)))
+        print(uploaded_file.name)
         file_path = os.path.join(settings.MEDIA_ROOT, str(user_id))
+        fs = FileSystemStorage(location=file_path)
         try:
             os.makedirs(file_path)
         except FileExistsError:

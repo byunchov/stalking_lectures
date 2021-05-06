@@ -41,21 +41,17 @@ class PlatformDataAnalyser():
         for content in walk(self.upload_path):
 
             #Check if there are any files in the current dir
-            print("DBG:")
-            print(content)
             if content[2]:
                 # if there are files, loop through all and check if they are of the allowed types
                 for item in content[2]:
                     data_file = f'{content[0]}/{item}'
 
                     if item.endswith('.zip'):
-                        print("zip found")
                         self.handle_zip_file(data_file)
                     elif item.endswith(ALLOWED_FILE_EXTENTIONS):
                         self.handle_data_file(data_file)
 
         if self.results_df and self.logs_df:
-            print("DBG: loading data")
             self.student_results = pd.concat(self.results_df).sort_values(by='ID', ascending=True)
             self.system_logs = pd.concat(self.logs_df)
 
@@ -86,7 +82,7 @@ class PlatformDataAnalyser():
 
 
     def calculate_central_tendency(self, selector):
-        if not self.student_results.empty and not self.system_logs.empty:
+        if self.student_results is not None and self.system_logs is not None:
             from statistics import mode
 
             if selector == 'all':
