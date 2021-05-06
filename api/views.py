@@ -5,19 +5,18 @@ from .helpers.analysis import PlatformDataAnalyser
 
 # from .forms import UploadFileForm
 
-# TODO (sandev): from somewhere import handle_uploaded_file
-
-
 def test(request):
     return HttpResponse(json.dumps({"message":"API is OK", "status":200, "authorization": False}))
 
+def file_upload():
+    analyser = PlatformDataAnalyser('./uploads/course_{id}')
 
 def calculate_mean(request):
     return HttpResponse(f'This is just a test! {request.GET.get("upr", default=None)}')
 
 
 def central_tendency(request):
-    analyser = PlatformDataAnalyser('/Users/ivansandev/Desktop/stalking_lectures/ExampleInputData')
+    analyser = PlatformDataAnalyser('/home/bobiyu/Documents/UNI/ПТС/test_folder/files')
 
     if request.method == 'GET':
         selector = request.GET.get("upr", default="")

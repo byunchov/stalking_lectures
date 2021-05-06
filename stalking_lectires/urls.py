@@ -1,4 +1,5 @@
-"""stalking_lectires URL Configuration
+"""
+stalking_lectires URL Configuration
 
 The `urlpatterns` list routes URLs to views. For more information please see:
     https://docs.djangoproject.com/en/3.2/topics/http/urls/
@@ -16,9 +17,17 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path, include
 from . import views
+from django.contrib.auth import views as auth_views
+
+from django.views.generic.base import TemplateView
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/', include('api.urls')),
-    path('upload/', views.upload, name='upload')
+    path('upload/', views.upload, name='upload'),
+    path('accounts/', include('django.contrib.auth.urls')),
+    path('', include('frontend.urls'))
+    # path('accounts/login/', auth_views.auth_login, name='login'),
+    # path('accounts/logout/', auth_views.auth_logout, name='logout'),
+    # path('', TemplateView.as_view(template_name='home.html'), name='home'),
 ]
