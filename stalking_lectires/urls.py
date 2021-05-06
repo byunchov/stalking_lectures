@@ -16,7 +16,6 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path, include
-from . import views
 from django.contrib.auth import views as auth_views
 
 from django.views.generic.base import TemplateView
@@ -24,7 +23,7 @@ from django.views.generic.base import TemplateView
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/', include('api.urls')),
-    path('upload/', views.upload, name='upload'),
+    # path('upload/', include('')),
     path('accounts/', include('django.contrib.auth.urls')),
     path('', include('frontend.urls'))
     # path('accounts/login/', auth_views.auth_login, name='login'),
