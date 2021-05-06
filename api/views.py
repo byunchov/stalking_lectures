@@ -1,14 +1,19 @@
 from django.shortcuts import render
 from django.http import HttpResponse
+import json
+from .helpers.analysis import PlatformDataAnalyser
+
+
+def file_upload():
+    analyser = PlatformDataAnalyser('./uploads/course_{id}')
 
 def calculate_mean(request):
     
     return HttpResponse(f'This is just a test! {request.GET.get("upr", default=None)}')
 
 def central_tendency(request):
-    import json
-    from .helpers.analysis import PlatformDataAnalyser
 
+    print(request.user)
     analyser = PlatformDataAnalyser('/home/bobiyu/Documents/UNI/ПТС/test_folder/files')
 
     if request.method == 'GET':
@@ -17,4 +22,4 @@ def central_tendency(request):
         selector = request.POST.get("upr", default="")
 
     data = analyser.calculate_central_tendency(selector)
-    return HttpResponse(data);
+    return HttpResponse(data)

@@ -1,0 +1,98 @@
+{% extends 'frontend/base.html' %}
+
+{% block title %}Home{% endblock %}
+{% block header %}Analysis{% endblock %}
+
+{% block content %}
+<div class="container mt-n10"> 
+  <div class="row">
+    <div class="col-8 mb-4">
+      <div class="card h-100">
+        <div class="card-header d-flex align-items-center">
+          <a class="btn btn-transparent-dark btn-icon" href="{% url 'analysis' %}">
+            <i class="fas fa-arrow-left"></i>
+          </a>
+          <div class="ml-3">
+            <h2 class="my-1">Анализ за курс #{{upload_id}}</h2>
+          </div>
+        </div>
+        <div class="card-body h-100 d-flex flex-column justify-content-center py-5 py-xl-4">
+          <div class="row align-items-center">
+            <div class="col-xl-8 col-xxl-12">
+              <div class="px-4 mb-4 mb-xl-0 mb-xxl-4">
+  
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col mb-4">
+      <div class="col">
+        <div class="card bg-yellow text-white mb-4">
+          <div class="card-body">
+            <div class="d-flex justify-content-between align-items-center">
+              <div class="mr-3">
+                <div class="text-lg font-weight-bold">Мерки на разсейване</div>
+              </div>
+              <i class="fas fa-braille fa-2x"></i>
+            </div>
+          </div>
+          <div class="card-footer d-flex align-items-center justify-content-between">
+            <a class="small text-white stretched-link" href="{% url 'spread' upload_id %}">Детаили</a>
+            <div class="small text-white"><i class="fas fa-angle-right"></i></div>
+          </div>
+        </div>
+      </div>
+      <div class="col">
+        <div class="card bg-green text-white mb-4">
+          <div class="card-body">
+            <div class="d-flex justify-content-between align-items-center">
+              <div class="mr-3">
+                <div class="text-lg font-weight-bold">Честотно разпределение</div>
+              </div>
+              <i class="fas fa-stream fa-2x"></i>
+            </div>
+          </div>
+          <div class="card-footer d-flex align-items-center justify-content-between">
+            <a class="small text-white stretched-link" href="{% url 'spread' upload_id %}">Детаили</a>
+            <div class="small text-white"><i class="fas fa-angle-right"></i></div>
+          </div>
+        </div>
+      </div>
+      <div class="col">
+        <div class="card bg-red text-white mb-4">
+          <div class="card-body">
+            <div class="d-flex justify-content-between align-items-center">
+              <div class="mr-3">
+                <div class="text-lg font-weight-bold">Мерки на централната тенденция</div>
+              </div>
+              <i class="fas fa-chart-bar fa-2x"></i>
+            </div>
+          </div>
+          <div class="card-footer d-flex align-items-center justify-content-between">
+            <a class="small text-white stretched-link" href="{% url 'spread' upload_id %}">Детаили</a>
+            <div class="small text-white"><i class="fas fa-angle-right"></i></div>
+          </div>
+        </div>
+      </div>
+      <div class="col">
+        <div class="card bg-blue text-white mb-4">
+          <div class="card-body">
+            <div class="d-flex justify-content-between align-items-center">
+              <div class="mr-3">
+                <div class="text-lg font-weight-bold">Корелационен анализ</div>
+              </div>
+              <i class="fab fa-connectdevelop fa-2x"></i>
+            </div>
+          </div>
+          <div class="card-footer d-flex align-items-center justify-content-between">
+            <a class="small text-white stretched-link" href="{% url 'spread' upload_id %}">Детаили</a>
+            <div class="small text-white"><i class="fas fa-angle-right"></i></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
