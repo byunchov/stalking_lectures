@@ -14,6 +14,14 @@ class UploadForm(forms.Form):
     files = forms.FileField(label='Файлове за анализ', widget=forms.ClearableFileInput(attrs=file_field_attrs), required=True)
 
 
+class UpdateForm(forms.Form):
+    platform_name = forms.CharField(max_length=255, label='Име на платформа', required=True)
+    platform_type = forms.CharField(max_length=255, label='Тип на платформа', required=True)
+    platform_url = forms.URLField(label='Адрес на платформа', required=True)
+    course_name = forms.CharField(max_length=255, label='Дисциплина', required=True)
+    application_field = forms.CharField(label='Област на приложение', max_length=255, widget=forms.Select(choices=appl_field_sl))
+
+
 class UploadModelForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
          self.user = kwargs.pop('user',None)

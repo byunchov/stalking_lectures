@@ -2,7 +2,12 @@
 {% load static %}
 
 {% block title %}Корелационен анализ{% endblock %}
-{% block header %}Moodle ПТС{% endblock %}
+{% block header %}{{ item.platform_name }} > {{ item.course_name }}{% endblock %}
+
+{% block header_desc %}
+{{ item.platform_type}} @ {{ item.platform_url }}
+{% endblock %}
+
 {% block content %}
 
 <div class="container mt-n10">
@@ -18,9 +23,20 @@
           </div>
         </div>
         <div class="card-body">
-          <table id="correlfreqDistDT" class="table table-striped table-bordered table-responsive-sm rounded"
+          <h3 class="text-primary mt-3 mb-4">Корелационен анализ на данните за броя прегледани лекции</h3>
+          <table id="correlationDT" class="table table-striped table-bordered table-responsive-sm rounded">
+            <thead class="bg-white">
+              <tr>
+                <th>Коефициент на корелация</th>
+                <th>Сила на зависимостта</th>
+                <th>Посока на зависимостта</th>
+              </tr>
+            </thead>
+          </table>
+          <h3 class="text-primary mt-3 mb-4">Честотното разпределение на данните за броя прегледани лекции</h3>
+          <table id="correlFreqDistDT" class="table table-striped table-bordered table-responsive-sm rounded"
             style="width: 100%;" cellspacing="0">
-            <thead>
+            <thead class="bg-white">
               <tr>
                 <th>Студент</th>
                 <th>Оценка</th>
@@ -65,15 +81,6 @@
 
 <script>
 
-  var sample_data = [
-    { "ID": 6532, "Result": 6.0, "View Count": 66, "Result rel freq": 0.73 },
-    { "ID": 7448, "Result": 5.0, "View Count": 2, "Result rel freq": 0.02 },
-    { "ID": 7907, "Result": 6.0, "View Count": 42, "Result rel freq": 0.47 },
-    { "ID": 7909, "Result": 4.0, "View Count": 28, "Result rel freq": 0.31 },
-    { "ID": 7910, "Result": 5.0, "View Count": 58, "Result rel freq": 0.65 },
-    { "ID": 7911, "Result": 4.0, "View Count": 31, "Result rel freq": 0.34 },
-  ]
-
   $(document).ready(function () {
     let path = window.location.href;
     $("#stickyNavigator a.nav-link").each(function () {
@@ -85,13 +92,41 @@
     $(document).ready(function () {
       var csrftoken = Cookies.get('csrftoken');
 
-      $('#correlfreqDistDT').DataTable({
+      $('#correlationDT').DataTable({
         // data: sample_data,
         ajax: {
-          headers: {'X-CSRFToken': csrftoken},
+          headers: { 'X-CSRFToken': csrftoken },
+          url: "{% url 'api_correlation' %}",
+          type: 'POST',
+          data: { upload_id: '{{ item.id }}' },
+          // converters: {"text json": JSON.parse, "text xml": jQuery.parseXML},
+          // contentType: 'application/json; charset=UTF-8',
+          // processData: false,
+          dataType: 'json',
+          dataSrc: '',
+        },
+        columns: [
+          { "data": "quotient" },
+          { "data": "dependency" },
+          { "data": "direction" },
+        ],
+        "processing": false,
+        "serverSide": false,
+        "paging": false,
+        "ordering": false,
+        "info": false,
+        "searching": false,
+        "autoWidth": true,
+      });
+
+      $('#correlFreqDistDT').DataTable({
+        // data: sample_data,
+        ajax: {
+          headers: { 'X-CSRFToken': csrftoken },
           url: "{% url 'api_corr_freq_dist' %}",
           type: 'POST',
-          data:{upload_id: '{{ item.id }}'},
+          data: { upload_id: '{{ item.id }}' },
+          dataType: 'json',
           dataSrc: '',
         },
         columns: [
@@ -100,9 +135,9 @@
           { "data": "view_count" },
           { "data": "result_rel_freq" },
         ],
-        columnDefs: [
-          { className: "font-weight-bold", "targets": [0] },
-        ],
+        pageLength: 5,
+        lengthMenu: [[5, 10, 15, 20, 25, 50, -1], [5, 10, 15, 20, 25, 50, "All"]],
+        paging: true,
       });
     });
 

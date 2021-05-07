@@ -40,6 +40,7 @@ def get_correlation(request):
         data = models.CorrelationAnalysis.objects.get(upload_id=request.POST['upload_id'])
 
         return JsonResponse(data.correlation_data, safe=False)
+        # return HttpResponse(data.correlation_data)
     
     return JsonResponse({'status': 404, 'msg': 'Not found!'})
 
