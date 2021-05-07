@@ -1,11 +1,16 @@
-from django.shortcuts import render
-from django.http import HttpResponse, HttpResponseRedirect
-import json
-from .helpers.analysis import PlatformDataAnalyser
+from django.shortcuts import render, redirect
+from django.http import HttpResponse, HttpResponseRedirect, JsonResponse
+from django.core.files.storage import FileSystemStorage
 from django.conf import settings
-import os
+from django.views.decorators.http import require_POST
 
-# from .forms import UploadFileForm
+import json
+import os
+from .helpers.analysis import PlatformDataAnalyser
+from . import models
+
+from frontend.forms import UploadForm, UploadModelForm
+
 
 def test(request):
     return HttpResponse(json.dumps({"message":"API is OK", "status":200, "authorization": False}))
@@ -29,6 +34,26 @@ def central_tendency(request):
     return HttpResponse(data);
 
 
+@require_POST
+def get_correlation(request):
+    if request.POST['upload_id']:        
+        data = models.CorrelationAnalysis.objects.get(upload_id=request.POST['upload_id'])
+
+        return JsonResponse(data.correlation_data, safe=False)
+    
+    return JsonResponse({'status': 404, 'msg': 'Not found!'})
+
+
+@require_POST
+def get_corr_freq_dist(request):
+    if request.POST['upload_id']:        
+        data = models.CorrelationAnalysis.objects.get(upload_id=request.POST['upload_id'])
+
+        return JsonResponse(data.freq_distrib, safe=False)
+    
+    return JsonResponse({'status': 404, 'msg': 'Not found!'})
+
+
 def all_analysis(request, user_id):
     # temporary
     # filepath = '/Users/ivansandev/Desktop/stalking_lectures/ExampleInputData'
@@ -38,6 +63,70 @@ def all_analysis(request, user_id):
 
     data = analyser.calculate_all()
     return HttpResponse(data);
+
+
+def upload_test(request):
+    from datetime import datetime
+    context = {}
+    if request.method == 'POST':
+        now = datetime.now().strftime("%Y%m%d%H%M%S")
+        upload = request.FILES.getlist('analysis_files')
+        
+        upload_path = f'user_{request.user.id}/{now}'
+        upload_path = os.path.join(settings.MEDIA_ROOT, upload_path)
+        fs = FileSystemStorage(location=upload_path)
+
+        try:
+            # os.makedirs(file_path)
+            pass
+        except FileExistsError:
+            # TODO
+            # shutil.rmtree(file_path) # force deletes directory (even if not empty)
+            # os.removedirs(os.path.join(settings.MEDIA_ROOT, str(user_id)))
+            # os.makedirs(file_path)
+            pass
+
+        upl = []
+        for x in upload:
+            upl.append(fs.url(fs.save(x.name, x)))
+
+        context['urls'] = upl
+
+    return render(request, 'upload.html', context)
+
+
+def upload_test_form(request):
+    context = {}
+    
+    if request.method == 'POST':
+        form = UploadModelForm(request.POST, request.FILES, user=request.user)
+
+        # if form.is_valid():
+        # from datetime import datetime
+
+        # now = datetime.now().strftime("%Y%m%d%H%M%S")
+        # upload = request.FILES.getlist('analysis_files')
+        
+        # upload_path = f'user_{request.user.id}/{now}'
+        # upload_path = os.path.join(settings.MEDIA_ROOT, upload_path)
+        # fs = FileSystemStorage(location=upload_path)
+
+        # upl = []
+        # for x in upload:
+        #     upl.append(fs.url(fs.save(x.name, x)))
+
+        # context['urls'] = upl
+
+        if form.is_valid():
+            form.save()
+            return redirect('home')
+
+    else:
+        form = UploadModelForm()
+
+    context['form'] = form
+
+    return render(request, 'upload.html', context)
 
 
 # def upload_file(request):

@@ -1,22 +1,67 @@
-from django.shortcuts import render
+from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required
 from django.core.files.storage import FileSystemStorage
 from django.conf import settings
+from .forms import UploadForm
+from api.models import Upload
+
 # from django.http import HttpResponse, HttpResponseRedirect
 import json
 import os
 import shutil
 
 
+def format_upload_path(request):
+    from datetime import datetime
+    ts = datetime.now().strftime("%Y%m%d%H%M%S")
+    return f'user_{request.user.id}/{ts}'
+
+
 @login_required
 def home_view(request):
-    return render(request, 'frontend/pages/home.html', {})
+    #TODO
+    # Move this section to api.views -> upload
+    context = {}
+    
+    if request.method == 'POST':
+        # verify form
+        form = UploadForm(request.POST, request.FILES)
+        if form.is_valid():
+            upload_path = os.path.join(settings.MEDIA_ROOT, format_upload_path(request))
+            fs = FileSystemStorage(location=upload_path)
+
+            # save files to local storage
+            for upload in request.FILES.getlist('files'):
+                fs.save(upload.name, upload)
+            
+            #TODO
+            # validate the upload and proceed
+
+            #TODO
+            #pass f_data fields to Upload model and save it to DB
+            f_data = form.cleaned_data
+            del f_data['files']
+            print(f_data)
+
+            upload = Upload(user=request.user, **f_data)
+            upload.save()
+
+            #if everything went as expecyed, redirect to upload overview page
+            return redirect('analysis_item', upload.pk)
+        else:
+            context['status'] = 'ERROR'        
+
+    else:
+        form = UploadForm()
+
+    context['form'] = form
+    return render(request, 'frontend/pages/home.html', context)
 
 
 @login_required
-def analysis_list_view(request,):
+def analysis_list_view(request):
     context = {}
-    context['range'] = range(1,16)
+    context['uploaded_analysis'] = Upload.objects.filter(user=request.user).order_by('-date_added')
 
     return render(request, 'frontend/pages/analysis.html', context)
 
@@ -24,10 +69,25 @@ def analysis_list_view(request,):
 @login_required
 def analysis_main_view(request, upload_id):
     context = {}
-    context['upload_id'] = upload_id
+    context['item'] = Upload.objects.get(pk=upload_id)
 
     return render(request, 'frontend/pages/analysis_item.html', context)
 
+
+@login_required
+def analysis_freq_dist_view(request, upload_id):
+    context = {}
+    context['upload_id'] = upload_id
+
+    return render(request, 'frontend/pages/freq_dist.html', context)
+
+
+@login_required
+def analysis_trend_view(request, upload_id):
+    context = {}
+    context['upload_id'] = upload_id
+
+    return render(request, 'frontend/pages/trend.html', context)
 
 @login_required
 def analysis_spread_view(request, upload_id):
@@ -35,6 +95,15 @@ def analysis_spread_view(request, upload_id):
     context['upload_id'] = upload_id
 
     return render(request, 'frontend/pages/spread.html', context)
+
+
+@login_required
+def analysis_correlations_view(request, upload_id):
+    context = {}
+    context['upload_id'] = upload_id
+    context['item'] = Upload.objects.get(pk=upload_id)
+
+    return render(request, 'frontend/pages/correlations.html', context)
 
 
 def upload(request, user_id):

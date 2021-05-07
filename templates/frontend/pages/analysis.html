@@ -18,24 +18,28 @@
               <tr>
                 <th>Дата</th>
                 <th>Платформа</th>
+                <th>Тип платформа</th>
                 <th>Предмет</th>
                 <th>URL Адрес</th>
                 <th>Действия</th>
               </tr>
             </thead>
             <tbody>
-              {% for row in range %}
+              {% for row in uploaded_analysis %}
               <tr>
-                <td>2021/04/25</td>
-                <td>Moodle</td>
-                <td>ПТС {{ row }}</td>
-                <td><a href="http://cs.tu-sofia.bg/bgmoodle" target="_blank">http://cs.tu-sofia.bg/bgmoodle</a></td>
+                <td>{{ row.date_added|date:"d.m.Y, H:i" }}</td>
+                <td>{{ row.platform_name }}</td>
+                <td>{{ row.platform_type }}</td>
+                <td>{{ row.course_name }}</td>
                 <td>
-                  <a href="{% url 'analysis_item' row %}"
-                    class="btn btn-datatable btn-icon btn-transparent-dark mr-2"><i
-                      class="fas fa-external-link-alt fa-lg"></i></i></a>
-                  <a href="{% url 'analysis_item' row %}" class="btn btn-datatable btn-icon btn-transparent-dark"><i
-                      class="fas fa-trash-alt fa-lg"></i></a>
+                  <a href="{{ row.platform_url }}" target="_blank">Link <i class="fas fa-external-link-alt"></i></a>
+                </td>
+                <td>
+                  <a href="{% url 'analysis_item' row.pk %}"
+                    class="btn btn-datatable btn-icon btn-transparent-dark mr-2">
+                    <i class="fas fa-external-link-alt fa-lg"></i></a>
+                  <a href="{% url 'analysis_item' row.pk %}" class="btn btn-datatable btn-icon btn-transparent-dark">
+                    <i class="fas fa-trash-alt fa-lg"></i></a>
                 </td>
               </tr>
               {% endfor %}
