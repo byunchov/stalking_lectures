@@ -10,7 +10,4 @@ urlpatterns = [
     path('analysis/<int:upload_id>/trend/', views.analysis_trend_view, name='trend'),
     path('analysis/<int:upload_id>/spread/', views.analysis_spread_view, name='spread'),
     path('analysis/<int:upload_id>/correlations/', views.analysis_correlations_view, name='correlations'),
-    # path('upload/<int:user_id>/', views.upload, name='upload'),
-
-
 ]
