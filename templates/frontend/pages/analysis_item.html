@@ -1,10 +1,16 @@
 {% extends 'frontend/base.html' %}
 
 {% block title %}Home{% endblock %}
-{% block header %}Analysis{% endblock %}
+{% block header %}{{ item.platform_name }} > {{ item.course_name }}{% endblock %}
+
+{% block header_desc %}
+{{ item.platform_type}} @ {{ item.platform_url }}
+{% endblock %}
+
+{% load crispy_forms_tags %}
 
 {% block content %}
-<div class="container mt-n10"> 
+<div class="container mt-n10">
   <div class="row">
     <div class="col-xl-8 mb-4">
       <div class="card h-100">
@@ -13,14 +19,26 @@
             <i class="fas fa-arrow-left"></i>
           </a>
           <div class="ml-3">
-            <h2 class="my-1">Анализ за курс #{{ item.id }} - {{ item.course_name}} @ {{ item.platform_name }}</h2>
+            <h2 class="my-1">Радакциа на данните за курса</h2>
           </div>
         </div>
         <div class="card-body h-100 d-flex flex-column justify-content-center py-5 py-xl-4">
           <div class="row align-items-center">
             <div class="col-xl-8 col-xxl-12">
               <div class="px-4 mb-4 mb-xl-0 mb-xxl-4">
-  
+                {% if response %}
+                <div class="alert alert-{{ response.status }} alert-icon mb-0" role="alert">
+                  <div class="alert-icon-aside"><i data-feather="alert-triangle"></i></div>
+                  <div class="alert-icon-content">
+                    {{ response.msg }}
+                  </div>
+                </div>
+                {% endif %}
+                <form action="post">
+                  {% csrf_token %}
+                  {{ form|crispy }}
+                  <button class="btn btn-primary" type="submit">Обновяване</button>
+                </form>
               </div>
             </div>
           </div>

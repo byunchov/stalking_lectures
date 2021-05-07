@@ -2,8 +2,10 @@ from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required
 from django.core.files.storage import FileSystemStorage
 from django.conf import settings
-from .forms import UploadForm
-from api.models import Upload
+from .forms import UploadForm, UpdateForm
+from api.models import Upload, CorrelationAnalysis
+from api.helpers.analysis import PlatformDataAnalyser
+from django.forms import modelform_factory, modelformset_factory
 
 # from django.http import HttpResponse, HttpResponseRedirect
 import json
@@ -43,8 +45,15 @@ def home_view(request):
             del f_data['files']
             print(f_data)
 
+            pda = PlatformDataAnalyser(upload_path)
+            pda.save_all()
+
             upload = Upload(user=request.user, **f_data)
             upload.save()
+
+            corr = CorrelationAnalysis(upload=upload, correlation_data=pda.correlation_data, freq_distrib=pda.corr_freq_distrib)
+            corr.save()
+            print(corr.pk)
 
             #if everything went as expecyed, redirect to upload overview page
             return redirect('analysis_item', upload.pk)
@@ -69,7 +78,27 @@ def analysis_list_view(request):
 @login_required
 def analysis_main_view(request, upload_id):
     context = {}
-    context['item'] = Upload.objects.get(pk=upload_id)
+    item = Upload.objects.get(pk=upload_id)
+    context['item'] = item
+
+    # UpdateForm2 = modelform_factory(UpdateForm, fields='__all__')
+
+    if request.method == 'POST':
+        form = UpdateForm(request.POST)
+
+        if form.is_valid():
+            f_data = form.cleaned_data
+            # Upload.objects.update(pk=upload_id, **f_data)
+            item.objects.update(pk=upload_id, **f_data)
+            item.save()
+            context['response'] = {'status': 'success', 'msg': 'Информацията е обовена успешно!'}
+        else:
+            context['response'] = {'status': 'danger', 'msg': 'Възникна грешка! Моля, проверете полетата и опитайте отново!'}
+
+    else:
+        form = UpdateForm()
+
+    context['form'] = form
 
     return render(request, 'frontend/pages/analysis_item.html', context)
 
