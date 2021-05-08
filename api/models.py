@@ -25,3 +25,20 @@ class CorrelationAnalysis(models.Model):
 
     def __str__(self):
         return f'Корелация: {self.upload.platform_name}'
+
+
+class StatisticalAnalysis(models.Model):
+    upload = models.ForeignKey(Upload, on_delete=models.CASCADE)
+
+    exercise = models.CharField(max_length=512)
+    mean = models.DecimalField(max_digits=6, decimal_places=4)
+    mode = models.CharField(max_length=512)
+    median = models.DecimalField(max_digits=6, decimal_places=4)
+    rel_freq = models.DecimalField(max_digits=6, decimal_places=4)
+    abs_freq = models.IntegerField()
+    spread = models.DecimalField(max_digits=6, decimal_places=4)
+    variance = models.DecimalField(max_digits=6, decimal_places=4)
+    stdev = models.DecimalField(max_digits=6, decimal_places=4)
+
+    def __str__(self):
+        return f'Статистика {self.upload.platform_name} > {self.exercise}'

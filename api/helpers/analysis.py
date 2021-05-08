@@ -31,14 +31,17 @@ class PlatformDataAnalyser():
 
         self.student_results = None
         self.system_logs = None
+        self.list_ex = None
 
         self.results_df = []
         self.logs_df = []
 
         self.correlation_data = None
         self.corr_freq_distrib = None
+        self.statistical_data = {}
 
-        self.err_log = []  # TODO
+        self.event_context = 'Assignment: Качване на Упр.'
+        self.event_name = 'Submission created.'
 
         self.init_data_from_file()
 
@@ -68,6 +71,14 @@ class PlatformDataAnalyser():
                 self.results_df).sort_values(by='ID', ascending=True)
             self.system_logs = pd.concat(self.logs_df)
 
+            filtered_data = self.system_logs[self.system_logs['Event context'].str.contains(
+                self.event_context) & (self.system_logs['Event name'] == self.event_name)]
+
+            self.list_ex = list(filtered_data.groupby('Event context').groups.keys())
+
+            for x in (self.event_context, *self.list_ex):
+                self.statistical_data[x] = {}
+
             del self.results_df
             del self.logs_df
 
@@ -84,66 +95,155 @@ class PlatformDataAnalyser():
 
         if 'ID' and 'Result' in df.columns:
             self.results_df.append(df)
-            print('Result file found! Appending DF to list.')
+            # print('Result file found! Appending DF to list.')
         elif 'Event' and 'Component' in df.columns:
             df['User ID'] = df['Description'].apply(
                 lambda x: np.int32(re.sub(r"[\D]+", ' ', x).strip().split()[0]))
             self.logs_df.append(df)
-            print('Log file found! Appending DF to list.')
+            # print('Log file found! Appending DF to list.')
 
+    def freq_dist_analysis(self):
 
-    def calculate_central_tendency(self, selector):
+        frequency = {}
+
+        filtered_data = self.system_logs[self.system_logs['Event context'].str.contains(
+            self.event_context) & (self.system_logs['Event name'] == self.event_name)]
+
+        # self.list_ex = list(filtered_data.groupby('Event context').groups.keys())
+
+        f_description = filtered_data['Description']
+
+        uploads = np.empty_like(f_description, dtype=int)
+
+        for index, item in enumerate(f_description):
+            val = re.sub(r"[\D]+", ' ', item).strip()
+            uploads[index] = np.fromstring(val, dtype=np.int32, sep=' ')[1]
+
+        frequency[self.event_context] = {
+            'abs_freq': uploads.sum().item(), 'rel_freq': 1.0}
+
+        total = frequency[self.event_context]['abs_freq']
+
+        for ex in self.list_ex:
+            f = filtered_data[filtered_data['Event context'].str.contains(
+                ex)]['Description']
+            uploads = np.empty_like(f, dtype=int)
+
+            for index, item in enumerate(f):
+                val = re.sub(r"[\D]+", ' ', item).strip()
+                uploads[index] = np.fromstring(val, dtype=np.int32, sep=' ')[1]
+
+            abs_f = uploads.sum().item()
+            rel_f = np.round(abs_f / total * 100, 2).item()
+            frequency[ex] = {'abs_freq': abs_f, 'rel_freq': rel_f}
+
+        for key in frequency.keys():
+            self.statistical_data[key].update(frequency[key])
+
+    def trend_analysis(self):
 
         def calc_mode(itterable):
             counter = Counter(itterable)
-            return tuple(k.item() for k, v in counter.items() if v == counter.most_common(1)[0][1])
+            mod = tuple(k for k, v in counter.items()
+                        if v == counter.most_common(1)[0][1])
+            return ', '.join(map(str, mod))
 
-        if self.student_results is not None and self.system_logs is not None:
-            from statistics import mode
+        trend = {}
 
-            if selector == 'all':
-                selector = ''
+        filtered_data = self.system_logs[self.system_logs['Event context'].str.contains(
+            self.event_context) & (self.system_logs['Event name'] == self.event_name)]
 
-            event_context = f'Assignment: Качване на Упр. {selector}'
-            event_name = 'Submission created.'
+        # self.list_ex = list(filtered_data.groupby('Event context').groups.keys())
 
-            filtered_data = self.system_logs[self.system_logs['Event context'].str.contains(
-                event_context) & (self.system_logs['Event name'] == event_name)]['Description']
+        f_description = filtered_data['Description']
 
-            uploded_files = np.empty_like(filtered_data, dtype=int)
+        uploads = np.empty_like(f_description, dtype=int)
 
-            for index, item in enumerate(filtered_data):
+        for index, item in enumerate(f_description):
+            val = re.sub(r"[\D]+", ' ', item).strip()
+            uploads[index] = np.fromstring(val, dtype=np.int32, sep=' ')[1]
+
+        trend[self.event_context] = {}
+
+        trend[self.event_context]['mode'] = calc_mode(uploads)
+        trend[self.event_context]['mean'] = np.round(
+            np.mean(uploads), 3).item()
+        trend[self.event_context]['median'] = np.round(
+            np.median(uploads), 3).item()
+
+        for ex in self.list_ex:
+            f = filtered_data[filtered_data['Event context'].str.contains(
+                ex)]['Description']
+            uploads = np.empty_like(f, dtype=int)
+
+            for index, item in enumerate(f):
                 val = re.sub(r"[\D]+", ' ', item).strip()
-                uploded_files[index] = np.fromstring(
-                    val, dtype=np.int32, sep=' ')[1]
+                uploads[index] = np.fromstring(val, dtype=np.int32, sep=' ')[1]
 
-            uploded_files.sort()
+            moda = calc_mode(uploads)
+            mean = np.round(np.mean(uploads), 3).item()
+            median = np.round(np.median(uploads), 3).item()
 
-            uploded_files_stats = {}
+            trend[ex] = {'mode': moda, 'median': median, 'mean': mean}
 
-            trend_mode = calc_mode(uploded_files)
+        for key in trend.keys():
+            self.statistical_data[key].update(trend[key])
 
-            # mode
-            uploded_files_stats['mode'] = ', '.join(map(str, trend_mode))
+    def spread_analysis(self):
 
-            # average
-            uploded_files_stats['mean'] = round(np.mean(uploded_files), 3)
+        spread = {}
 
-            # meadian
-            uploded_files_stats['median'] = np.median(uploded_files)
+        filtered_data = self.system_logs[self.system_logs['Event context'].str.contains(
+            self.event_context) & (self.system_logs['Event name'] == self.event_name)]
 
-            return json.dumps(uploded_files_stats, cls=NpEncoder)
+        # self.list_ex = list(filtered_data.groupby('Event context').groups.keys())
 
-        else:
-            return json.dumps({'error': 'Nothing to be displayed!'})
+        f_description = filtered_data['Description']
 
+        uploads = np.empty_like(f_description, dtype=int)
+
+        for index, item in enumerate(f_description):
+            val = re.sub(r"[\D]+", ' ', item).strip()
+            uploads[index] = np.fromstring(val, dtype=np.int32, sep=' ')[1]
+
+        uploads.sort()
+
+        spread[self.event_context] = {}
+
+        spread[self.event_context]['spread'] = uploads[-1].item() - \
+            uploads[0].item()
+        spread[self.event_context]['variance'] = np.round(
+            np.var(uploads), 4).item()
+        spread[self.event_context]['stdev'] = np.round(
+            np.std(uploads), 4).item()
+
+        for ex in self.list_ex:
+            f = filtered_data[filtered_data['Event context'].str.contains(
+                ex)]['Description']
+            uploads = np.empty_like(f, dtype=int)
+
+            for index, item in enumerate(f):
+                val = re.sub(r"[\D]+", ' ', item).strip()
+                uploads[index] = np.fromstring(val, dtype=np.int32, sep=' ')[1]
+
+            uploads.sort()
+
+            spr = uploads[-1].item() - uploads[0].item()
+            var = np.round(np.var(uploads), 4).item()
+            std = np.round(np.std(uploads), 4).item()
+
+            spread[ex] = {'spread': spr, 'variance': var, 'stdev': std}
+
+        for key in spread.keys():
+            self.statistical_data[key].update(spread[key])
 
     def correlation_analysis(self):
         df = self.system_logs
         self.student_results['view_count'] = self.student_results['ID'].apply(lambda uid: df[df['Event name'].str.contains(
             'Course viewed') & (df['User ID'] == uid)]['User ID'].count())
 
-        correlation = np.round(self.student_results[['Result', 'view_count']].corr()['view_count']['Result'], 4)
+        correlation = np.round(self.student_results[['Result', 'view_count']].corr()[
+                               'view_count']['Result'], 4)
 
         corr_data = {}
         corr_data['quotient'] = correlation
@@ -171,20 +271,22 @@ class PlatformDataAnalyser():
 
         self.correlation_data = [corr_data]
 
-
     def correlation_freq_dist_analysis(self):
         total_vc = self.student_results['view_count'].sum()
 
-        self.student_results['result_rel_freq'] = self.student_results['view_count'].apply(lambda vc: np.round(vc / total_vc *100, 2))
-        correl_df = self.student_results.rename(columns={'Result': 'result', 'ID': 'id'}, inplace=False)
+        self.student_results['result_rel_freq'] = self.student_results['view_count'].apply(
+            lambda vc: np.round(vc / total_vc * 100, 2))
+        correl_df = self.student_results.rename(
+            columns={'Result': 'result', 'ID': 'id'}, inplace=False)
 
         self.corr_freq_distrib = correl_df.to_dict(orient='records')
 
-
     def save_all(self):
+        self.freq_dist_analysis()
+        self.trend_analysis()
+        self.spread_analysis()
         self.correlation_analysis()
         self.correlation_freq_dist_analysis()
-
 
     def calculate_all(self):
         result = {}
