@@ -93,14 +93,17 @@ class PlatformDataAnalyser():
         df = pd.read_csv(path_to_file) if str(path_to_file).endswith(
             '.csv') else pd.read_excel(path_to_file)
 
-        if 'ID' and 'Result' in df.columns:
-            self.results_df.append(df)
-        elif 'Event' and 'Component' and 'Description' in df.columns:
-            df['User ID'] = df['Description'].apply(
-                lambda x: np.int32(re.sub(r"[\D]+", ' ', x).strip().split()[0]))
-            self.logs_df.append(df)
-        else:
-            raise InvalidDataInFile
+        try:
+            if 'ID' and 'Result' in df.columns:
+                self.results_df.append(df)
+            elif 'Event' and 'Component' and 'Description' in df.columns:
+                df['User ID'] = df['Description'].apply(
+                    lambda x: np.int32(re.sub(r"[\D]+", ' ', x).strip().split()[0]))
+                self.logs_df.append(df)
+            else:
+                raise InvalidDataInFile
+        except:
+            print("Invalid file uploaded!")
 
     def freq_dist_analysis(self):
 
