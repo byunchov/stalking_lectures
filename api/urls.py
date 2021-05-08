@@ -6,9 +6,7 @@ urlpatterns = [
     # simple API, unauthorized, used for testing
     path('', views.test, name='test'),
     path('upload/', views.upload_test_form, name='api_upload'),
-    path('mean/', views.calculate_mean, name='calculate_mean'),
-    path('tendency/', views.central_tendency, name='tendency'),
-    path('analysis/userid=<str:user_id>/', views.all_analysis, name='all_analysis'),
+    path('delete/', views.delete_upload, name='api_delete'),
 
     # Query API
     #TODO

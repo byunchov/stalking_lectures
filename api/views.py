@@ -54,6 +54,18 @@ def get_corr_freq_dist(request):
     return JsonResponse({'status': 404, 'msg': 'Not found!'})
 
 
+@require_POST
+def delete_upload(request):
+    if request.POST['upload_id']:
+        upload = models.Upload.objects.get(pk=request.POST['upload_id'])
+
+        upload.delete()
+        return JsonResponse({'status': 200, 'msg': 'Upload deleted.'})
+    
+    return JsonResponse({'status': 404, 'msg': 'Not found!'})
+
+
+
 def all_analysis(request, user_id):
     # filepath = '/Users/ivansandev/Desktop/stalking_lectures/ExampleInputData'
     filepath = os.path.join(settings.MEDIA_ROOT, str(user_id))

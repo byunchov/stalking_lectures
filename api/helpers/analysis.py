@@ -1,9 +1,12 @@
-import pandas as pd
-import numpy as np
-import re
 from zipfile import ZipFile
 from os import walk
+import pandas as pd
+import numpy as np
 import json
+import re
+
+from collections import Counter
+from .analysis_exceptions import NoActivityLogFile, NoStudentResultsFile, InvalidDataInFile
 
 
 ALLOWED_FILE_EXTENTIONS = ('.xls', '.xlsx', '.ods', '.odf', '.odt', '.csv')
@@ -19,11 +22,6 @@ class NpEncoder(json.JSONEncoder):
             return obj.tolist()
         else:
             return super(NpEncoder, self).default(obj)
-
-
-class InvalidDataInFile(Exception):
-    """Exception raised for invalid data in the files uploaded"""
-    pass
 
 
 class PlatformDataAnalyser():
@@ -58,6 +56,13 @@ class PlatformDataAnalyser():
                     elif item.endswith(ALLOWED_FILE_EXTENTIONS):
                         self.handle_data_file(data_file)
 
+        if not self.results_df and not self.logs_df:
+            raise InvalidDataInFile
+        elif not self.results_df:
+            raise NoStudentResultsFile
+        elif not self.logs_df:
+            raise NoActivityLogFile
+
         if self.results_df and self.logs_df:
             self.student_results = pd.concat(
                 self.results_df).sort_values(by='ID', ascending=True)
@@ -85,10 +90,14 @@ class PlatformDataAnalyser():
                 lambda x: np.int32(re.sub(r"[\D]+", ' ', x).strip().split()[0]))
             self.logs_df.append(df)
             print('Log file found! Appending DF to list.')
-        else:
-            raise InvalidDataInFile
+
 
     def calculate_central_tendency(self, selector):
+
+        def calc_mode(itterable):
+            counter = Counter(itterable)
+            return tuple(k.item() for k, v in counter.items() if v == counter.most_common(1)[0][1])
+
         if self.student_results is not None and self.system_logs is not None:
             from statistics import mode
 
@@ -112,8 +121,10 @@ class PlatformDataAnalyser():
 
             uploded_files_stats = {}
 
+            trend_mode = calc_mode(uploded_files)
+
             # mode
-            uploded_files_stats['mode'] = mode(uploded_files)
+            uploded_files_stats['mode'] = ', '.join(map(str, trend_mode))
 
             # average
             uploded_files_stats['mean'] = round(np.mean(uploded_files), 3)
@@ -158,7 +169,7 @@ class PlatformDataAnalyser():
         else:
             corr_data['direction'] = 'отрицателна'
 
-        self.correlation_data = corr_data
+        self.correlation_data = [corr_data]
 
 
     def correlation_freq_dist_analysis(self):
@@ -173,7 +184,6 @@ class PlatformDataAnalyser():
     def save_all(self):
         self.correlation_analysis()
         self.correlation_freq_dist_analysis()
-
 
 
     def calculate_all(self):

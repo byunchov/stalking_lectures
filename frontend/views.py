@@ -4,7 +4,8 @@ from django.core.files.storage import FileSystemStorage
 from django.conf import settings
 from .forms import UploadForm, UpdateForm
 from api.models import Upload, CorrelationAnalysis
-from api.helpers.analysis import PlatformDataAnalyser, InvalidDataInFile
+from api.helpers.analysis import PlatformDataAnalyser
+from api.helpers.analysis_exceptions import NoActivityLogFile, NoStudentResultsFile, InvalidDataInFile
 from django.forms import modelform_factory, modelformset_factory
 
 # from django.http import HttpResponse, HttpResponseRedirect
@@ -19,9 +20,27 @@ def format_upload_path(request):
     return f'user_{request.user.id}/{ts}'
 
 
+def post_upload_handler(path):
+    try:
+        # SAFER WAY (delete file by file)
+        # # delete all uploads
+        # for file in request.FILES.getlist('files'):
+        #     fs.delete(file.name)
+        # # delete timestamp directory
+        # fs_def = FileSystemStorage(location=settings.MEDIA_ROOT)
+        # fs_def.delete(upload_path)
+        # # delete user_id directory
+        # fs_def.delete(upload_path[0:upload_path.rfind('/')])
+
+        # SIMPLER (deletes all files for selected user)
+        shutil.rmtree(path[0:path.rfind('/')])
+    except:
+        print("DBG: Cannot delete files")
+
+
 @login_required
 def home_view(request):
-    #TODO
+    # TODO
     # Move this section to api.views -> upload
     context = {}
 
@@ -29,55 +48,63 @@ def home_view(request):
         # verify form
         form = UploadForm(request.POST, request.FILES)
         if form.is_valid():
-            upload_path = os.path.join(settings.MEDIA_ROOT, format_upload_path(request))
+            upload_path = os.path.join(
+                settings.MEDIA_ROOT, format_upload_path(request))
             fs = FileSystemStorage(location=upload_path)
 
             # save files to local storage
             for upload in request.FILES.getlist('files'):
                 fs.save(upload.name, upload)
 
-            #TODO
-            #pass f_data fields to Upload model and save it to DB
+            # TODO
+            # pass f_data fields to Upload model and save it to DB
             f_data = form.cleaned_data
             del f_data['files']
-            print(f_data)
 
             try:
                 pda = PlatformDataAnalyser(upload_path)
+                pda.save_all()
+
+                upload = Upload(user=request.user, **f_data)
+                upload.save()
+
+                corr = CorrelationAnalysis(
+                    upload=upload, correlation_data=pda.correlation_data, freq_distrib=pda.corr_freq_distrib)
+                corr.save()
+                
+                # Clear uploaded files
+                post_upload_handler(upload_path)
+
+                # if everything went as expected, redirect to upload overview page
+                return redirect('analysis_item', upload.pk)
+
+            except NoStudentResultsFile:
+                # Retutn response to user for the error
+                context['response'] = {'status': 'danger', 'msg': {
+                    'heading': 'Невалидни данни', 'content': 'Качените файлове не съдържат списък с оценки на студенти!'}}
+            
+            except NoActivityLogFile:
+                # Retutn response to user for the error
+                context['response'] = {'status': 'danger', 'msg': {
+                    'heading': 'Невалидни данни', 'content': 'Качените файлове не съдържат списък с активност на студенти!'}}
+            
             except InvalidDataInFile:
-                context['invalid_files'] = 'ERROR'
-                context['form'] = UploadForm()
-                return render(request, "frontend/pages/home.html", context)
-            pda.save_all()
+                # Retutn response to user for the error
+                context['response'] = {'status': 'danger', 'msg': {
+                    'heading': 'Невалидни данни', 'content': 'Качените файлове не съдържат необходимите данни за анализ!'}}                
 
-            upload = Upload(user=request.user, **f_data)
-            upload.save()
-
-            corr = CorrelationAnalysis(upload=upload, correlation_data=pda.correlation_data, freq_distrib=pda.corr_freq_distrib)
-            corr.save()
-
-            try:
-                # SAFER WAY (delete file by file)
-                # # delete all uploads
-                # for file in request.FILES.getlist('files'):
-                #     fs.delete(file.name)
-                # # delete timestamp directory
-                # fs_def = FileSystemStorage(location=settings.MEDIA_ROOT)
-                # fs_def.delete(upload_path)
-                # # delete user_id directory
-                # fs_def.delete(upload_path[0:upload_path.rfind('/')])
-
-                # SIMPLER (deletes all files for selected user)
-                shutil.rmtree(upload_path[0:upload_path.rfind('/')])
-            except:
-                print("DBG: Cannot delete files")
-
-            #if everything went as expecyed, redirect to upload overview page
-            return redirect('analysis_item', upload.pk)
+            finally:
+                # Clear uploaded files
+                post_upload_handler(upload_path)
+                # Returna input form data, so the user doesn't need to enter it again
+                # context['form'] = form
+   
         else:
-            context['status'] = 'ERROR'
+             context['response'] = {'status': 'danger', 'msg': {
+                    'heading': 'Невалидни данни', 'content': 'Проверете попълнените полета и опитайте отново.'}}
 
     else:
+        # Return balnk form
         form = UploadForm()
 
     context['form'] = form
@@ -87,7 +114,8 @@ def home_view(request):
 @login_required
 def analysis_list_view(request):
     context = {}
-    context['uploaded_analysis'] = Upload.objects.filter(user=request.user).order_by('-date_added')
+    context['uploaded_analysis'] = Upload.objects.filter(
+        user=request.user).order_by('-date_added')
 
     return render(request, 'frontend/pages/analysis.html', context)
 
@@ -98,22 +126,22 @@ def analysis_main_view(request, upload_id):
     item = Upload.objects.get(pk=upload_id)
     context['item'] = item
 
-    # UpdateForm2 = modelform_factory(UpdateForm, fields='__all__')
-
     if request.method == 'POST':
-        form = UpdateForm(request.POST)
+        form = UpdateForm(request.POST, instance=item)
 
         if form.is_valid():
-            f_data = form.cleaned_data
+            # f_data = form.cleaned_data
             # Upload.objects.update(pk=upload_id, **f_data)
-            item.objects.update(pk=upload_id, **f_data)
-            item.save()
-            context['response'] = {'status': 'success', 'msg': 'Информацията е обовена успешно!'}
+            # item.objects.update(pk=upload_id, **f_data)
+            form.save()
+            context['response'] = {'status': 'success',
+                                   'msg': { 'content': 'Информацията е обовена успешно!' } }
         else:
-            context['response'] = {'status': 'danger', 'msg': 'Възникна грешка! Моля, проверете полетата и опитайте отново!'}
+            context['response'] = {
+                'status': 'danger', 'msg': { 'content': 'Възникна грешка! Моля, проверете полетата и опитайте отново!' }}
 
     else:
-        form = UpdateForm()
+        form = UpdateForm(instance=item)
 
     context['form'] = form
 
@@ -134,6 +162,7 @@ def analysis_trend_view(request, upload_id):
     context['upload_id'] = upload_id
 
     return render(request, 'frontend/pages/trend.html', context)
+
 
 @login_required
 def analysis_spread_view(request, upload_id):
