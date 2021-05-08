@@ -95,12 +95,12 @@ class PlatformDataAnalyser():
 
         if 'ID' and 'Result' in df.columns:
             self.results_df.append(df)
-            # print('Result file found! Appending DF to list.')
-        elif 'Event' and 'Component' in df.columns:
+        elif 'Event' and 'Component' and 'Description' in df.columns:
             df['User ID'] = df['Description'].apply(
                 lambda x: np.int32(re.sub(r"[\D]+", ' ', x).strip().split()[0]))
             self.logs_df.append(df)
-            # print('Log file found! Appending DF to list.')
+        else:
+            raise InvalidDataInFile
 
     def freq_dist_analysis(self):
 
