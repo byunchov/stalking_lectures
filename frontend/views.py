@@ -37,9 +37,6 @@ def home_view(request):
                 fs.save(upload.name, upload)
 
             #TODO
-            # validate the upload and proceed
-
-            #TODO
             #pass f_data fields to Upload model and save it to DB
             f_data = form.cleaned_data
             del f_data['files']
@@ -58,7 +55,22 @@ def home_view(request):
 
             corr = CorrelationAnalysis(upload=upload, correlation_data=pda.correlation_data, freq_distrib=pda.corr_freq_distrib)
             corr.save()
-            print(corr.pk)
+
+            try:
+                # SAFER WAY (delete file by file)
+                # # delete all uploads
+                # for file in request.FILES.getlist('files'):
+                #     fs.delete(file.name)
+                # # delete timestamp directory
+                # fs_def = FileSystemStorage(location=settings.MEDIA_ROOT)
+                # fs_def.delete(upload_path)
+                # # delete user_id directory
+                # fs_def.delete(upload_path[0:upload_path.rfind('/')])
+
+                # SIMPLER (deletes all files for selected user)
+                shutil.rmtree(upload_path[0:upload_path.rfind('/')])
+            except:
+                print("DBG: Cannot delete files")
 
             #if everything went as expecyed, redirect to upload overview page
             return redirect('analysis_item', upload.pk)
