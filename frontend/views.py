@@ -4,7 +4,7 @@ from django.core.files.storage import FileSystemStorage
 from django.conf import settings
 from .forms import UploadForm, UpdateForm
 from api.models import Upload, CorrelationAnalysis
-from api.helpers.analysis import PlatformDataAnalyser
+from api.helpers.analysis import PlatformDataAnalyser, InvalidDataInFile
 from django.forms import modelform_factory, modelformset_factory
 
 # from django.http import HttpResponse, HttpResponseRedirect
@@ -24,7 +24,7 @@ def home_view(request):
     #TODO
     # Move this section to api.views -> upload
     context = {}
-    
+
     if request.method == 'POST':
         # verify form
         form = UploadForm(request.POST, request.FILES)
@@ -35,7 +35,7 @@ def home_view(request):
             # save files to local storage
             for upload in request.FILES.getlist('files'):
                 fs.save(upload.name, upload)
-            
+
             #TODO
             # validate the upload and proceed
 
@@ -45,7 +45,12 @@ def home_view(request):
             del f_data['files']
             print(f_data)
 
-            pda = PlatformDataAnalyser(upload_path)
+            try:
+                pda = PlatformDataAnalyser(upload_path)
+            except InvalidDataInFile:
+                context['invalid_files'] = 'ERROR'
+                context['form'] = UploadForm()
+                return render(request, "frontend/pages/home.html", context)
             pda.save_all()
 
             upload = Upload(user=request.user, **f_data)
@@ -58,7 +63,7 @@ def home_view(request):
             #if everything went as expecyed, redirect to upload overview page
             return redirect('analysis_item', upload.pk)
         else:
-            context['status'] = 'ERROR'        
+            context['status'] = 'ERROR'
 
     else:
         form = UploadForm()

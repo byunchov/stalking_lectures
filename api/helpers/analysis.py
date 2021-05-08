@@ -21,6 +21,11 @@ class NpEncoder(json.JSONEncoder):
             return super(NpEncoder, self).default(obj)
 
 
+class InvalidDataInFile(Exception):
+    """Exception raised for invalid data in the files uploaded"""
+    pass
+
+
 class PlatformDataAnalyser():
 
     def __init__(self, upload_path):
@@ -81,7 +86,7 @@ class PlatformDataAnalyser():
             self.logs_df.append(df)
             print('Log file found! Appending DF to list.')
         else:
-            print('Nothing found!')
+            raise InvalidDataInFile
 
     def calculate_central_tendency(self, selector):
         if self.student_results is not None and self.system_logs is not None:
@@ -121,7 +126,7 @@ class PlatformDataAnalyser():
         else:
             return json.dumps({'error': 'Nothing to be displayed!'})
 
- 
+
     def correlation_analysis(self):
         df = self.system_logs
         self.student_results['view_count'] = self.student_results['ID'].apply(lambda uid: df[df['Event name'].str.contains(
@@ -147,7 +152,7 @@ class PlatformDataAnalyser():
             corr_data['dependency'] = 'много силна зависимост'
         elif corr == 1:
             corr_data['dependency'] = 'зависимостта е функционална'
-            
+
         if correlation >= 0:
             corr_data['direction'] = 'положителна'
         else:

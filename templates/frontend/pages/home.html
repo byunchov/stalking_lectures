@@ -7,6 +7,15 @@
 {% block content %}
 <div class="container mt-n10">
   <div class="card p-5">
+    {% if invalid_files %}
+    <div class="alert alert-danger alert-icon mb-24" role="alert">
+      <div class="alert-icon-aside"><i data-feather="alert-triangle"></i></div>
+      <div class="alert-icon-content">
+        <h5 class="alert-heading">Невалидни данни</h5>
+        Данните на качените файлове са невалидни.
+      </div>
+    </div>
+    {% endif %}
     <form method="post" enctype="multipart/form-data">
       {% csrf_token %}
       {{ form|crispy }}
