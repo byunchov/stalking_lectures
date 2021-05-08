@@ -22,20 +22,10 @@ def format_upload_path(request):
 
 def post_upload_handler(path):
     try:
-        # SAFER WAY (delete file by file)
-        # # delete all uploads
-        # for file in request.FILES.getlist('files'):
-        #     fs.delete(file.name)
-        # # delete timestamp directory
-        # fs_def = FileSystemStorage(location=settings.MEDIA_ROOT)
-        # fs_def.delete(upload_path)
-        # # delete user_id directory
-        # fs_def.delete(upload_path[0:upload_path.rfind('/')])
-
-        # SIMPLER (deletes all files for selected user)
-        shutil.rmtree(path[0:path.rfind('/')])
+        # deletion of directory (timestamp) for logged in user
+        shutil.rmtree(path)
     except:
-        print("DBG: Cannot delete files")
+        print(f"[DBG] Cannot delete files after analysis: {path}")
 
 
 @login_required
@@ -71,7 +61,7 @@ def home_view(request):
                 corr = CorrelationAnalysis(
                     upload=upload, correlation_data=pda.correlation_data, freq_distrib=pda.corr_freq_distrib)
                 corr.save()
-                
+
                 # Clear uploaded files
                 post_upload_handler(upload_path)
 
@@ -82,23 +72,23 @@ def home_view(request):
                 # Retutn response to user for the error
                 context['response'] = {'status': 'danger', 'msg': {
                     'heading': 'Невалидни данни', 'content': 'Качените файлове не съдържат списък с оценки на студенти!'}}
-            
+
             except NoActivityLogFile:
                 # Retutn response to user for the error
                 context['response'] = {'status': 'danger', 'msg': {
                     'heading': 'Невалидни данни', 'content': 'Качените файлове не съдържат списък с активност на студенти!'}}
-            
+
             except InvalidDataInFile:
                 # Retutn response to user for the error
                 context['response'] = {'status': 'danger', 'msg': {
-                    'heading': 'Невалидни данни', 'content': 'Качените файлове не съдържат необходимите данни за анализ!'}}                
+                    'heading': 'Невалидни данни', 'content': 'Качените файлове не съдържат необходимите данни за анализ!'}}
 
             finally:
                 # Clear uploaded files
                 post_upload_handler(upload_path)
                 # Returna input form data, so the user doesn't need to enter it again
                 # context['form'] = form
-   
+
         else:
              context['response'] = {'status': 'danger', 'msg': {
                     'heading': 'Невалидни данни', 'content': 'Проверете попълнените полета и опитайте отново.'}}
