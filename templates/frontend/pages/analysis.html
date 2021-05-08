@@ -1,8 +1,8 @@
 {% extends 'frontend/base.html' %}
 
 {% block title %}Анализи{% endblock %}
-{% block header %}Списък с анализи{% endblock %}
-{% block header_desc %}Кратко описание за страничката{% endblock %}
+{% block header %}Анализи{% endblock %}
+{% block header_desc %}Списък на направените от вас анализи{% endblock %}
 
 
 {% block content %}
@@ -62,7 +62,7 @@
     <div class="modal-content">
       <div class="modal-body">
         <p class="h3">
-          Сигурни ли сте, че искате да премахнете записа за <b>{{ item.platform_name }}</b> > <b>{{ item.course_name }}</b>?
+          Сигурни ли сте, че искате да премахнете записа?
         </p>
       </div>
       <div class="modal-footer">
@@ -111,7 +111,7 @@
           $('#cofirmModal').modal('hide');
           $('#confirm').attr('disabled', false);
           if(data.status = 200){
-            window.location.href = "{% url 'analysis' %}";
+            window.location.reload();
           }
         }
       });

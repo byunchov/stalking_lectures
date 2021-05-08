@@ -5,7 +5,8 @@
 {% block header %}{{ item.platform_name }} > {{ item.course_name }}{% endblock %}
 
 {% block header_desc %}
-{{ item.platform_type}} @ {{ item.platform_url }}
+{{ item.platform_type}} @ <a href="{{ item.platform_url }}" target="_blank" class="text-white-50">
+  {{ item.platform_url}}</a>
 {% endblock %}
 
 {% block content %}
@@ -34,17 +35,40 @@
             </thead>
           </table>
           <h3 class="text-primary mt-4 mb-4">Честотното разпределение на данните за броя прегледани лекции</h3>
-          <table id="correlFreqDistDT" class="table table-striped table-bordered table-responsive-sm rounded"
-            style="width: 100%;" cellspacing="0">
-            <thead class="bg-white">
-              <tr>
-                <th>Студент</th>
-                <th>Оценка</th>
-                <th>Преглеждания</th>
-                <th>Относителна честота</th>
-              </tr>
-            </thead>
-          </table>
+          <div class="card shadow-none">
+            <div class="card-header border-bottom">
+              <ul class="nav nav-tabs card-header-tabs" id="cardTab" role="tablist">
+                <li class="nav-item">
+                  <a class="nav-link active" id="table-tab" href="#tableViewTab" data-toggle="tab" role="tab"
+                    aria-controls="tableViewTab" aria-selected="true">Таблица</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" id="chart-tab" href="#chartViewTab" data-toggle="tab" role="tab"
+                    aria-controls="chartViewTab" aria-selected="false">Диаграма</a>
+                </li>
+              </ul>
+            </div>
+            <div class="card-body">
+              <div class="tab-content" id="cardTabContent">
+                <div class="tab-pane fade show active" id="tableViewTab" role="tabpanel" aria-labelledby="table-tab">
+                  <table id="correlFreqDistDT" class="table table-striped table-bordered table-responsive-sm rounded"
+                    style="width: 100%;" cellspacing="0">
+                    <thead class="bg-white">
+                      <tr>
+                        <th>Студент</th>
+                        <th>Оценка</th>
+                        <th>Преглеждания</th>
+                        <th>Относителна честота</th>
+                      </tr>
+                    </thead>
+                  </table>
+                </div>
+                <div class="tab-pane fade" id="chartViewTab" role="tabpanel" aria-labelledby="chart-tab">
+                  <div id="chartArea"></div>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -52,15 +76,7 @@
       <div class="nav-sticky">
         <div class="card">
           <div class="card-body">
-            <ul class="nav flex-column" id="stickyNavigator">
-              <li class="nav-item"><a class="nav-link" href="{% url 'freq_dist' item.id %}">Честотно разпределение</a>
-              </li>
-              <li class="nav-item"><a class="nav-link" href="{% url 'trend' item.id %}">Мерки на централната
-                  тенденция</a></li>
-              <li class="nav-item"><a class="nav-link" href="{% url 'spread' item.id %}">Мерки на разсейване</a></li>
-              <li class="nav-item"><a class="nav-link" href="{% url 'correlations' item.id %}">Корелационен анализ</a>
-              </li>
-            </ul>
+            {% include 'frontend/sticky_nav.html' %}
           </div>
         </div>
       </div>
@@ -78,8 +94,15 @@
 {% block scripts %}
 <script src="https://cdn.datatables.net/1.10.24/js/jquery.dataTables.min.js"></script>
 <script src="https://cdn.datatables.net/1.10.24/js/dataTables.bootstrap4.min.js"></script>
+<script src="https://code.highcharts.com/highcharts.src.js"></script>
 
 <script>
+  // var table;
+
+  function chartData(table) {
+    let data = table.data().toArray();
+    return data.map((val, key) => [val.result, val.view_count]);
+  }
 
   $(document).ready(function () {
     let path = window.location.href;
@@ -89,56 +112,114 @@
       }
     });
 
-    $(document).ready(function () {
-      var csrftoken = Cookies.get('csrftoken');
+    var csrftoken = Cookies.get('csrftoken');
 
-      $('#correlationDT').DataTable({
-        // data: sample_data,
-        ajax: {
-          headers: { 'X-CSRFToken': csrftoken },
-          url: "{% url 'api_correlation' %}",
-          type: 'POST',
-          data: { upload_id: '{{ item.id }}' },
-          // converters: {"text json": JSON.parse, "text xml": jQuery.parseXML},
-          // contentType: 'application/json; charset=UTF-8',
-          // processData: false,
-          dataType: 'json',
-          dataSrc: '',
-        },
-        columns: [
-          { "data": "quotient" },
-          { "data": "dependency" },
-          { "data": "direction" },
-        ],
-        "processing": false,
-        "serverSide": false,
-        "paging": false,
-        "ordering": false,
-        "info": false,
-        "searching": false,
-        "autoWidth": true,
-      });
+    $('#correlationDT').DataTable({
+      // data: sample_data,
+      ajax: {
+        headers: { 'X-CSRFToken': csrftoken },
+        url: "{% url 'api_correlation' %}",
+        type: 'POST',
+        data: { upload_id: '{{ item.id }}' },
+        // converters: {"text json": JSON.parse, "text xml": jQuery.parseXML},
+        // contentType: 'application/json; charset=UTF-8',
+        // processData: false,
+        dataType: 'json',
+        dataSrc: '',
+      },
+      columns: [
+        { "data": "quotient" },
+        { "data": "dependency" },
+        { "data": "direction" },
+      ],
+      "processing": false,
+      "serverSide": false,
+      "paging": false,
+      "ordering": false,
+      "info": false,
+      "searching": false,
+      "autoWidth": true,
+    });
 
-      $('#correlFreqDistDT').DataTable({
-        // data: sample_data,
-        ajax: {
-          headers: { 'X-CSRFToken': csrftoken },
-          url: "{% url 'api_corr_freq_dist' %}",
-          type: 'POST',
-          data: { upload_id: '{{ item.id }}' },
-          dataType: 'json',
-          dataSrc: '',
+    let table = $('#correlFreqDistDT').DataTable({
+      initComplete: function () {
+        chart.series[0].setData(chartData(table));
+      },
+      ajax: {
+        headers: { 'X-CSRFToken': csrftoken },
+        url: "{% url 'api_corr_freq_dist' %}",
+        type: 'POST',
+        data: { upload_id: '{{ item.id }}' },
+        dataType: 'json',
+        dataSrc: '',
+      },
+      columns: [
+        { "data": "id" },
+        { "data": "result" },
+        { "data": "view_count" },
+        { "data": "result_rel_freq" },
+      ],
+      pageLength: 5,
+      lengthMenu: [[5, 10, 15, 20, 25, 50, -1], [5, 10, 15, 20, 25, 50, "All"]],
+      paging: true,
+    });
+
+    // On each draw, update the data in the chart
+    table.on('draw', function () {
+      // chart.series[0].setData(chartData(table));
+      console.log("table redraw");
+    });
+
+    let chart = Highcharts.chart('chartArea', {
+      chart: {
+        type: 'scatter',
+        zoomType: 'xy'
+      },
+      title: false,
+      subtitle: false,
+      xAxis: {
+        title: {
+          enabled: true,
+          text: 'Оценка'
         },
-        columns: [
-          { "data": "id" },
-          { "data": "result" },
-          { "data": "view_count" },
-          { "data": "result_rel_freq" },
-        ],
-        pageLength: 5,
-        lengthMenu: [[5, 10, 15, 20, 25, 50, -1], [5, 10, 15, 20, 25, 50, "All"]],
-        paging: true,
-      });
+        startOnTick: true,
+        endOnTick: true,
+        showLastLabel: true
+      },
+      yAxis: {
+        title: {
+          text: 'Брой преглеждания'
+        }
+      },
+      legend: false,
+      plotOptions: {
+        scatter: {
+          marker: {
+            radius: 5,
+            states: {
+              hover: {
+                enabled: true,
+                lineColor: 'rgb(100,100,100)'
+              }
+            }
+          },
+          states: {
+            hover: {
+              marker: {
+                enabled: false
+              }
+            }
+          },
+          tooltip: {
+            headerFormat: '<b>{series.name}</b><br>',
+            pointFormat: '{point.x} прегледа, {point.y} оценка'
+          }
+        }
+      },
+      series: [{
+        name: 'Корелация',
+        color: 'rgba(223, 83, 83, .5)',
+      }],
     });
 
   });

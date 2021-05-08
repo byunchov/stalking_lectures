@@ -3,7 +3,7 @@ from django.contrib.auth.decorators import login_required
 from django.core.files.storage import FileSystemStorage
 from django.conf import settings
 from .forms import UploadForm, UpdateForm
-from api.models import Upload, CorrelationAnalysis
+from api.models import Upload, CorrelationAnalysis, StatisticalAnalysis
 from api.helpers.analysis import PlatformDataAnalyser
 from api.helpers.analysis_exceptions import NoActivityLogFile, NoStudentResultsFile, InvalidDataInFile
 from django.forms import modelform_factory, modelformset_factory
@@ -62,6 +62,10 @@ def home_view(request):
                     upload=upload, correlation_data=pda.correlation_data, freq_distrib=pda.corr_freq_distrib)
                 corr.save()
 
+                for key in pda.statistical_data.keys():
+                    stat = StatisticalAnalysis(upload=upload, exercise=key, **pda.statistical_data[key])
+                    stat.save()
+
                 # Clear uploaded files
                 post_upload_handler(upload_path)
 
@@ -90,8 +94,8 @@ def home_view(request):
                 # context['form'] = form
 
         else:
-             context['response'] = {'status': 'danger', 'msg': {
-                    'heading': 'Невалидни данни', 'content': 'Проверете попълнените полета и опитайте отново.'}}
+            context['response'] = {'status': 'danger', 'msg': {
+                'heading': 'Невалидни данни', 'content': 'Проверете попълнените полета и опитайте отново.'}}
 
     else:
         # Return balnk form
@@ -120,15 +124,12 @@ def analysis_main_view(request, upload_id):
         form = UpdateForm(request.POST, instance=item)
 
         if form.is_valid():
-            # f_data = form.cleaned_data
-            # Upload.objects.update(pk=upload_id, **f_data)
-            # item.objects.update(pk=upload_id, **f_data)
             form.save()
             context['response'] = {'status': 'success',
-                                   'msg': { 'content': 'Информацията е обовена успешно!' } }
+                                   'msg': {'content': 'Информацията е обовена успешно!'}}
         else:
             context['response'] = {
-                'status': 'danger', 'msg': { 'content': 'Възникна грешка! Моля, проверете полетата и опитайте отново!' }}
+                'status': 'danger', 'msg': {'content': 'Възникна грешка! Моля, проверете полетата и опитайте отново!'}}
 
     else:
         form = UpdateForm(instance=item)
@@ -141,7 +142,7 @@ def analysis_main_view(request, upload_id):
 @login_required
 def analysis_freq_dist_view(request, upload_id):
     context = {}
-    context['upload_id'] = upload_id
+    context['item'] = Upload.objects.get(pk=upload_id)
 
     return render(request, 'frontend/pages/freq_dist.html', context)
 
@@ -149,7 +150,7 @@ def analysis_freq_dist_view(request, upload_id):
 @login_required
 def analysis_trend_view(request, upload_id):
     context = {}
-    context['upload_id'] = upload_id
+    context['item'] = Upload.objects.get(pk=upload_id)
 
     return render(request, 'frontend/pages/trend.html', context)
 
@@ -157,7 +158,7 @@ def analysis_trend_view(request, upload_id):
 @login_required
 def analysis_spread_view(request, upload_id):
     context = {}
-    context['upload_id'] = upload_id
+    context['item'] = Upload.objects.get(pk=upload_id)
 
     return render(request, 'frontend/pages/spread.html', context)
 
@@ -170,22 +171,3 @@ def analysis_correlations_view(request, upload_id):
 
     return render(request, 'frontend/pages/correlations.html', context)
 
-
-def upload(request, user_id):
-    context = {}
-    if request.method == 'POST':
-        uploaded_file = request.FILES['analysis_files']
-        print(uploaded_file.name)
-        file_path = os.path.join(settings.MEDIA_ROOT, str(user_id))
-        fs = FileSystemStorage(location=file_path)
-        try:
-            os.makedirs(file_path)
-        except FileExistsError:
-            # TODO
-            # shutil.rmtree(file_path) # force deletes directory (even if not empty)
-            # os.removedirs(os.path.join(settings.MEDIA_ROOT, str(user_id)))
-            # os.makedirs(file_path)
-            pass
-        name = fs.save(uploaded_file.name, uploaded_file)
-        context['url'] = fs.url(name)
-    return render(request, 'upload.html', context)
